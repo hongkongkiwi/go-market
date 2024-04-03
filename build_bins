@@ -1,0 +1,16 @@
+#!/bin/bash -u
+
+BIN_OUTPUT_DIR="./bin"
+CMDS_TO_BUILD=(\
+"marketsimulator" \
+"priceapi" \
+"providerapi" \
+"ratingfactordemo" \
+)
+
+mkdir -p ./bin
+
+for CMD in "${CMDS_TO_BUILD[@]}"; do
+  go build -o "$BIN_OUTPUT_DIR/$CMD" "./cmd/$CMD/main.go" && \
+    echo "Successfully built $BIN_OUTPUT_DIR/$CMD"
+done

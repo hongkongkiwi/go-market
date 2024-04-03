@@ -1,0 +1,69 @@
+#!/bin/bash -eu
+
+# Function to display usage information
+usage() {
+    echo "Usage: $0 <provider> <base1>/<quote1>/<enabled1> [<base2>/<quote2>/<enabled2> ...]"
+    echo "Example: $0 GoldenDragonExchange BTC/USD/true ETH/USD/false"
+    exit 1
+}
+
+# Check if curl and jq are installed
+if ! command -v curl >/dev/null 2>&1; then
+    echo >&2 "Error: curl is not installed. Please install curl to proceed."
+    exit 1
+fi
+
+if ! command -v jq >/dev/null 2>&1; then
+    echo >&2 "Error: jq is not installed. Please install jq to proceed."
+    exit 1
+fi
+
+# Check if there are at least two arguments
+if [ "$#" -lt 2 ]; then
+    usage
+fi
+
+# Assign the provider name
+PROVIDER_NAME="${1:-""}"
+shift
+
+# Declare an empty array
+json_array=()
+
+# Loop through all arguments
+for arg in "$@"; do
+    IFS='/' read -r base quote enabled <<< "$arg"  # Split argument by '/'
+    # Convert enabled to boolean value
+    enabled=$(echo "$enabled" | tr '[:upper:]' '[:lower:]')  # Convert to lowercase
+    if [ "$enabled" = "true" ]; then
+        enabled=true
+    else
+        enabled=false
+    fi
+    # Generate JSON object and append it to the array
+    json_array+=("$(jq -n --arg base "$base" --arg quote "$quote" --argjson enabled "$enabled" '{ "base": $base, "quote": $quote, "enabled": $enabled }')")
+done
+
+# Construct the final JSON object
+if [ ${#json_array[@]} -gt 0 ]; then
+    # Convert the array of JSON objects into a single JSON object
+    json_object=$(printf '%s\n' "${json_array[@]}" | jq -s '.')
+else
+    # If no pairs are found, send an empty JSON array
+    json_object='[]'
+fi
+
+# Print the final JSON object
+echo "{ \"pairs\": $json_object }"
+
+# Send JSON PUT request with curl
+response=$(curl -s -X PUT -d "{ \"pairs\": $json_object }" -H "Content-Type: application/json" "http://localhost:8081/providers/$PROVIDER_NAME" 2>/dev/null || true)
+
+# Check response status code
+if [[ "$(curl -s -o /dev/null -w "%{http_code}" -X PUT -d "{ \"pairs\": $json_object }" -H "Content-Type: application/json" "http://localhost:8081/providers/$PROVIDER_NAME")" != "200" ]]; then
+    echo "Error: Request failed with response code $(curl -s -o /dev/null -w "%{http_code}" -X PUT -d "{ \"pairs\": $json_object }" -H "Content-Type: application/json" "http://localhost:8081/providers/$PROVIDER_NAME"). Response body:"
+    echo "$response"
+    exit 1
+fi
+
+exit 0

@@ -1,0 +1,4 @@
+#!/bin/bash -u
+docker compose -f docker-compose.no-simulator.yml up
+# We exited so close up shop
+docker compose down

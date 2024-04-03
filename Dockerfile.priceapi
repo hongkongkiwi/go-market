@@ -1,0 +1,23 @@
+FROM golang:latest AS priceapi-builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY ./cmd/priceapi ./cmd/priceapi
+COPY ./src ./src
+RUN CGO_ENABLED=1 go build -o priceapi ./cmd/priceapi
+
+FROM ubuntu:latest AS priceapi
+VOLUME /app/logs
+VOLUME /app/data
+WORKDIR /app
+# Prevent prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update package repositories and install packages
+RUN apt-get update && \
+    apt-get install -y \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=priceapi-builder /app/priceapi .
+ENTRYPOINT ["./priceapi"]

@@ -1,0 +1,59 @@
+#!/bin/bash -eu
+
+# Function to display usage information
+usage() {
+    echo "Usage: $0 <provider> <base> <quote> <bid> <ask>"
+    echo "Example: $0 GoldenDragonExchange BTC USD 54000.50 54100.75"
+    exit 1
+}
+
+# Check if curl is installed
+if ! command -v curl >/dev/null 2>&1; then
+    echo >&2 "Error: curl is not installed. Please install curl to proceed."
+    exit 1
+fi
+
+# Check if the number of arguments provided is correct
+if [ "$#" -ne 5 ]; then
+    usage
+fi
+
+# Assign command-line arguments to variables
+provider="$1"
+base="$2"
+quote="$3"
+bid="$4"
+ask="$5"
+
+# Check if bid and ask are numeric
+if ! [[ "$bid" =~ ^[0-9]+(\.[0-9]+)?$ ]] || ! [[ "$ask" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+    echo >&2 "Error: bid and ask must be numeric values."
+    exit 1
+fi
+
+# Make the POST request with curl and capture the response
+response=$(curl -s -X POST "http://localhost:8080/prices" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "'"$provider"'",
+    "base": "'"$base"'",
+    "quote": "'"$quote"'",
+    "bid": '"$bid"',
+    "ask": '"$ask"'
+  }')
+
+# Check if curl encountered any errors
+if [ $? -ne 0 ]; then
+    echo >&2 "Error: curl failed to make the request."
+    exit 1
+fi
+
+# Check the response for errors returned by the server
+error=$(echo "$response" | jq -r '.error')
+if [ "$error" != "null" ]; then
+    echo >&2 "Error from server: $error"
+    exit 1
+fi
+
+# If no errors, print the response
+echo "$response"

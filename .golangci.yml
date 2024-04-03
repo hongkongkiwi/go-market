@@ -1,0 +1,17 @@
+run:
+  tests: false
+  skip-dirs:
+    - testutils
+    - i18n
+
+linters:
+  enable:
+    - gosec
+    - godox
+    - golint
+    - interfacer
+    - unconvert
+    - goimports
+    - misspell
+    - prealloc
+    - gocritic

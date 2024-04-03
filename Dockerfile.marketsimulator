@@ -1,0 +1,22 @@
+FROM golang:latest AS marketsimulator-builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY ./cmd/marketsimulator ./cmd/marketsimulator
+COPY ./src ./src
+RUN CGO_ENABLED=1 go build -o marketsimulator ./cmd/marketsimulator
+
+FROM ubuntu:latest AS marketsimulator
+VOLUME /app/data
+WORKDIR /app
+# Prevent prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+# Update package repositories and install packages
+RUN apt-get update && \
+    apt-get install -y \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=marketsimulator-builder /app/marketsimulator .
+ENTRYPOINT ["./marketsimulator"]

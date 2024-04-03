@@ -1,0 +1,6 @@
+#!/bin/bash -u
+
+command -v jq >/dev/null 2>&1 || { echo >&2 "Error: jq is not installed. Please install jq to proceed."; exit 1; }
+command -v curl >/dev/null 2>&1 || { echo >&2 "Error: curl is not installed. Please install curl to proceed."; exit 1; }
+
+curl -s -X GET "http://localhost:8081/providers" | jq

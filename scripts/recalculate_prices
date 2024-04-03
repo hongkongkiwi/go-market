@@ -1,0 +1,16 @@
+#!/bin/bash -eu
+
+# Check if curl is installed
+command -v curl >/dev/null 2>&1 || { echo >&2 "Error: curl is not installed. Please install curl to proceed."; exit 1; }
+
+# Send JSON PUT request with curl
+response=$(curl -X PUT -d '{}' -H "Content-Type: application/json" "http://localhost:8080/prices/recalculate" 2>/dev/null || true)
+
+# Check response status code
+if [[ "$(curl -s -o /dev/null -w "%{http_code}" -X PUT -d '{}' -H "Content-Type: application/json" "http://localhost:8080/prices/recalculate")" != "200" ]]; then
+    echo "Error: Request failed with response code $(curl -s -o /dev/null -w "%{http_code}" -X PUT -d '{}' -H "Content-Type: application/json" "http://localhost:8081/prices/recalculate"). Response body:"
+    echo "$response"
+    exit 1
+fi
+
+exit 0

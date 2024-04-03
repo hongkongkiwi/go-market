@@ -1,0 +1,32 @@
+#!/bin/bash -u
+
+# Check if jq and curl are installed
+command -v jq >/dev/null 2>&1 || { echo >&2 "Error: jq is not installed. Please install jq to proceed."; exit 1; }
+command -v curl >/dev/null 2>&1 || { echo >&2 "Error: curl is not installed. Please install curl to proceed."; exit 1; }
+
+# Function to display usage information
+usage() {
+    echo "Usage: $0 PROVIDER_NAME"
+    echo "Example: $0 GoldenDragonExchange"
+    exit 1
+}
+
+# Parse command line arguments
+if [ $# -ne 1 ]; then
+    usage
+fi
+
+# Initialize PROVIDER_NAME with the provided argument
+PROVIDER_NAME="$1"
+
+# Make GET request to retrieve provider information
+RESPONSE=$(curl -s -f -X GET "http://localhost:8081/providers/$PROVIDER_NAME")
+
+# Check if curl command was successful
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to retrieve data from the server."
+    exit 1
+fi
+
+# Parse JSON response using jq
+echo "$RESPONSE" | jq

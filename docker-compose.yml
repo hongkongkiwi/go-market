@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  priceapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.priceapi
+    ports:
+      - "8080:8080"
+    volumes:
+      - $PWD/data:/app/data
+      - $PWD/logs:/app/logs
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/ping"]
+      interval: 1s
+      timeout: 10s
+      retries: 10
+      start_period: 2s
+
+  providerapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.providerapi
+    ports:
+      - "8081:8081"
+    environment:
+      PRICE_API_URL_BASE: "http://priceapi:8080"
+    volumes:
+      - $PWD/data:/app/data
+    networks:
+      - backend
+
+  marketsimulator:
+    build:
+      context: .
+      dockerfile: Dockerfile.marketsimulator
+    environment:
+      PRICE_API_URL_BASE: "http://priceapi:8080"
+    volumes:
+      - $PWD/data:/app/data
+    depends_on:
+      priceapi:
+        condition: service_healthy
+    networks:
+      - backend
+
+networks:
+  backend:
